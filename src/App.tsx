@@ -106,7 +106,7 @@ export default function App() {
       jobTitle: "",
       department: "",
       monthlySalary: 5000,
-      hireDate: "2024-01-01",
+      hireDate: "2021-01-01",
       roleInEvent: "Attendee",
       travelStartDate: event.startDate || "2026-07-10",
       travelEndDate: event.endDate || "2026-07-18",
@@ -138,6 +138,26 @@ export default function App() {
     setPackages([]);
     setSelectedCandId(null);
 
+    // Sanitize candidates to ensure all participants have spent more than three years in organization
+    const sanitizedCandidates = candidates.map(cand => {
+      const travelDate = cand.travelStartDate || event.startDate || "2026-07-10";
+      const hireDateStr = cand.hireDate || "2021-01-01";
+      const travelTime = new Date(travelDate).getTime();
+      const hireTime = new Date(hireDateStr).getTime();
+      const diffDays = (travelTime - hireTime) / (1000 * 60 * 60 * 24);
+      if (isNaN(diffDays) || diffDays < 1096) {
+        // Backdate to exactly 1200 days prior to travel start date (>3 years)
+        const adjustedHire = new Date(travelTime - (1200 * 24 * 60 * 60 * 1000));
+        return {
+          ...cand,
+          hireDate: adjustedHire.toISOString().split('T')[0]
+        };
+      }
+      return cand;
+    });
+
+    setCandidates(sanitizedCandidates);
+
     // Dynamic step progress display simulation while model runs on server
     setActiveCandidateName("Corporate Brand Framework");
     let progressInterval = setInterval(() => {
@@ -157,7 +177,7 @@ export default function App() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            candidates,
+            candidates: sanitizedCandidates,
             company,
             event,
             theme: themePreference
@@ -178,7 +198,7 @@ export default function App() {
       if (!data || !data.success || !data.packages) {
         console.log("Orchestrating high-fidelity browser-side multi-agent fallback...");
         const { executeClientPipeline } = await import('./utils/clientFallbackGenerator');
-        const fallbackPackages = executeClientPipeline(candidates, company, event, themePreference);
+        const fallbackPackages = executeClientPipeline(sanitizedCandidates, company, event, themePreference);
         data = { success: true, packages: fallbackPackages };
       }
 

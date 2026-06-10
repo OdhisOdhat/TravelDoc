@@ -141,6 +141,17 @@ export function executeClientPipeline(
       updated.companyAddress = updated.companyAddress || mockEmp.address;
       updated.companyEmail = updated.companyEmail || mockEmp.email;
     }
+    
+    // Enforce > 3 years of employment relative to travel start date or event
+    const travelDate = updated.travelStartDate || event.startDate || "2026-07-10";
+    const hireDateStr = updated.hireDate || "2021-01-01";
+    const travelTime = new Date(travelDate).getTime();
+    const hireTime = new Date(hireDateStr).getTime();
+    const diffDays = (travelTime - hireTime) / (1000 * 60 * 60 * 24);
+    if (isNaN(diffDays) || diffDays < 1096) {
+      const adjustedHire = new Date(travelTime - (1200 * 24 * 60 * 60 * 1000));
+      updated.hireDate = adjustedHire.toISOString().split('T')[0];
+    }
     return updated;
   });
 

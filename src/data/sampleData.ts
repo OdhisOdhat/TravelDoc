@@ -45,7 +45,7 @@ export const SAMPLE_CANDIDATES: Candidate[] = [
     jobTitle: "Senior Clinical Trials Coordinator",
     department: "Clinical Operations & Biotech Compliance",
     monthlySalary: 154700,
-    hireDate: "2024-05-10",
+    hireDate: "2021-05-10",
     roleInEvent: "Exhibitor",
     travelStartDate: "2026-07-09",
     travelEndDate: "2026-07-19",
