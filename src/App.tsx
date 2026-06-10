@@ -151,20 +151,36 @@ export default function App() {
     }, 1500);
 
     try {
-      // Step 1: Query full-stack Express agent pipeline
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          candidates,
-          company,
-          event,
-          theme: themePreference
-        })
-      });
+      let data: any = null;
+      try {
+        const response = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            candidates,
+            company,
+            event,
+            theme: themePreference
+          })
+        });
 
-      const data = await response.json();
+        if (response.ok) {
+          data = await response.json();
+        } else {
+          console.warn("Backend API returned non-OK status:", response.status);
+        }
+      } catch (fetchErr: any) {
+        console.warn("API network or connection issue, switching to high-fidelity client generator:", fetchErr);
+      }
+
       clearInterval(progressInterval);
+
+      if (!data || !data.success || !data.packages) {
+        console.log("Orchestrating high-fidelity browser-side multi-agent fallback...");
+        const { executeClientPipeline } = await import('./utils/clientFallbackGenerator');
+        const fallbackPackages = executeClientPipeline(candidates, company, event, themePreference);
+        data = { success: true, packages: fallbackPackages };
+      }
 
       if (data.success && data.packages) {
         setProgressPercent(100);
@@ -184,7 +200,7 @@ export default function App() {
       }
     } catch (err: any) {
       console.error(err);
-      alert("Failed connecting to the documentation server: " + err.message);
+      alert("Unhandled exception in document generator pipeline: " + err.message);
     } finally {
       setIsGenerating(false);
     }
