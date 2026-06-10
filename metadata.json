@@ -1,0 +1,8 @@
+{
+  "name": "Voyager TravelDoc AI",
+  "description": "A multi-agent system that automates the generation of customized, beautiful, and compliant travel-support documents, employment letters, visa documents, and payslips.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
