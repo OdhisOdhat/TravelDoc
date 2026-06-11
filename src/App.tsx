@@ -3,7 +3,7 @@ import {
   Users, Palette, Globe, Briefcase, Plus, Trash2, 
   Sparkles, FileText, CheckCircle2, ShieldAlert, ShieldCheck,
   Building2, Calendar, FileType, BookOpen, ChevronRight, HelpCircle,
-  Search, Loader2, Wand2, Download
+  Search, Loader2, Wand2, Download, Hotel
 } from 'lucide-react';
 import { Candidate, CompanyProfile, EventDetails, DesignTheme, CandidatePackage, AgentLog } from './types';
 import { SAMPLE_COMPANY, SAMPLE_EVENT, SAMPLE_CANDIDATES } from './data/sampleData';
@@ -42,6 +42,9 @@ export default function App() {
   // App Execution States
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLookingUpVenue, setIsLookingUpVenue] = useState(false);
+  const [isSearchingHotels, setIsSearchingHotels] = useState(false);
+  const [lookedUpHotels, setLookedUpHotels] = useState<any[]>([]);
+  const [showHotelsDropdown, setShowHotelsDropdown] = useState(false);
   const [logs, setLogs] = useState<AgentLog[]>([]);
   const [packages, setPackages] = useState<CandidatePackage[]>([]);
   const [selectedCandId, setSelectedCandId] = useState<string | null>(null);
@@ -116,6 +119,35 @@ export default function App() {
       alert("Error looking up event details: " + err.message);
     } finally {
       setIsLookingUpVenue(false);
+    }
+  };
+
+  const handleSearchHotels = async () => {
+    if (!event.venue || !event.venue.trim()) {
+      alert("Please specify a Conference Venue address of the event first!");
+      return;
+    }
+    setIsSearchingHotels(true);
+    setShowHotelsDropdown(true);
+    try {
+      const res = await fetch('/api/lookup-hotels', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ venue: event.venue, cityCountry: event.cityCountry })
+      });
+      const data = await res.json();
+      if (data.success && data.hotels) {
+        setLookedUpHotels(data.hotels);
+      } else {
+        alert(data.error || "Could not retrieve accommodations.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert("Error sourcing accommodations: " + err.message);
+    } finally {
+      setIsSearchingHotels(false);
     }
   };
 
@@ -600,15 +632,118 @@ export default function App() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-slate-500 font-semibold mb-1">Conference Venue</label>
+              <div className="relative">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-slate-500 font-semibold">Conference Venue</label>
+                  <button
+                    type="button"
+                    onClick={handleSearchHotels}
+                    disabled={isSearchingHotels || !event.venue?.trim()}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 disabled:bg-slate-50 disabled:border-slate-100 disabled:text-slate-400 text-emerald-700 rounded text-[10px] font-bold transition-all cursor-pointer"
+                  >
+                    {isSearchingHotels ? (
+                      <>
+                        <Loader2 className="h-2.5 w-2.5 animate-spin text-emerald-500" />
+                        Sourcing...
+                      </>
+                    ) : (
+                      <>
+                        <Hotel className="h-2.5 w-2.5 text-emerald-600" />
+                        🏨 Sourced Hotels
+                      </>
+                    )}
+                  </button>
+                </div>
                 <input 
+                  id="venue-address-input"
                   type="text" 
                   value={event.venue}
                   onChange={(e) => setEvent({ ...event, venue: e.target.value })}
                   placeholder="e.g. Marina Bay Sands Exhibition Centre"
                   className="w-full border border-slate-200 rounded-md px-3 py-2 focus:ring-1 focus:ring-slate-900 focus:border-slate-900 outline-none text-slate-800 transition-all"
                 />
+
+                {/* Sponsoring Hotel Pill */}
+                {event.designatedHotelName && (
+                  <div className="mt-1.5 flex items-center justify-between bg-emerald-50/75 border border-emerald-100 text-emerald-800 rounded px-2.5 py-1 text-[11px] font-medium leading-normal animate-none">
+                    <span className="truncate">
+                      🏨 **Designated Hotel:** {event.designatedHotelName}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setEvent({ ...event, designatedHotelName: undefined, designatedHotelAddress: undefined })}
+                      className="ml-2 hover:bg-emerald-200/50 text-emerald-700 hover:text-emerald-900 font-bold rounded-full w-4 h-4 flex items-center justify-center shrink-0 cursor-pointer"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+
+                {/* Sourced Hotels Modal/Dropdown overlay */}
+                {showHotelsDropdown && (
+                  <div className="absolute left-0 right-0 mt-1 z-50 bg-white border border-slate-200 rounded-lg shadow-xl max-h-72 overflow-y-auto p-3 text-xs text-slate-800 animate-none">
+                    <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 mb-2">
+                      <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px] flex items-center gap-1">
+                        ✨ Sourced near Event Area
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowHotelsDropdown(false)}
+                        className="text-slate-400 hover:text-slate-600 font-bold text-sm cursor-pointer"
+                      >
+                        ×
+                      </button>
+                    </div>
+
+                    {isSearchingHotels ? (
+                      <div className="py-8 flex flex-col items-center justify-center gap-2">
+                        <Loader2 className="h-5 w-5 animate-spin text-emerald-600" />
+                        <span className="text-[11px] text-slate-500 font-medium">Sourcing from Web Grounding index...</span>
+                      </div>
+                    ) : lookedUpHotels.length === 0 ? (
+                      <div className="py-4 text-center text-slate-400 text-[11px]">
+                        No accommodations loaded. Please ensure the Event Venue has values and try again.
+                      </div>
+                    ) : (
+                      <div className="space-y-2.5">
+                        {lookedUpHotels.map((h, i) => (
+                          <div 
+                            key={i} 
+                            className="p-2 border border-slate-100 hover:border-emerald-200 rounded bg-slate-50/50 hover:bg-emerald-50/10 transition-all flex flex-col justify-between gap-1.5"
+                          >
+                            <div>
+                              <div className="flex items-center justify-between font-bold text-slate-800 text-[11px]">
+                                <span className="truncate">{h.name}</span>
+                                <span className="text-emerald-700 shrink-0">{h.pricePerNight}</span>
+                              </div>
+                              <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5 mt-0.5">
+                                <span>📍 {h.distance}</span>
+                                <span className="truncate">• {h.address.split(',')[0]}</span>
+                              </div>
+                              <p className="text-[10px] text-slate-500 italic mt-1 leading-relaxed">
+                                {h.description}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEvent({
+                                  ...event,
+                                  designatedHotelName: h.name,
+                                  designatedHotelAddress: h.address
+                                });
+                                setShowHotelsDropdown(false);
+                              }}
+                              className="w-full text-center py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-bold transition-all cursor-pointer shadow-xs"
+                            >
+                              Sponsor & Book for Guests
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">

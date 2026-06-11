@@ -144,6 +144,104 @@ async function startServer() {
     }
   });
 
+  // API Route: Accommodation & Hotel Search Grounding Lookup
+  app.post("/api/lookup-hotels", async (req, res) => {
+    try {
+      const { venue, cityCountry } = req.body;
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "GEMINI_API_KEY is not set on the server." });
+      }
+      if (!venue || !venue.trim()) {
+        return res.status(400).json({ error: "Venue is required for accommodation search." });
+      }
+
+      // Dynamic import
+      const { GoogleGenAI, Type } = await import("@google/genai");
+      const ai = new GoogleGenAI({
+        apiKey,
+        httpOptions: {
+          headers: { 'User-Agent': 'aistudio-build' }
+        }
+      });
+
+      const prompt = `Perform a live search to find exactly 3 real, active commercial hotels/accommodations located closest to the event venue: "${venue}" in "${cityCountry}".
+      Pick high-quality hotels suitable for corporate event travelers. Provide their exact public name, estimated business-tier cost per night, approximate distance from the venue, description, and physical address.`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          tools: [{ googleSearch: {} }],
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              hotels: {
+                type: Type.ARRAY,
+                description: "List of real hotels found near the venue",
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    name: { type: Type.STRING, description: "Official name of the property" },
+                    address: { type: Type.STRING, description: "Complete physical address" },
+                    distance: { type: Type.STRING, description: "Detailed proximity or distance from the venue (e.g. 0.3 miles, 12 minutes walk)" },
+                    pricePerNight: { type: Type.STRING, description: "Estimated corporate rate per night in USD or local currency" },
+                    description: { type: Type.STRING, description: "A sentence highlighting premium business traveler comforts" }
+                  },
+                  required: ["name", "address", "distance", "pricePerNight", "description"]
+                }
+              }
+            },
+            required: ["hotels"]
+          }
+        }
+      });
+
+      const result = JSON.parse(response.text || "{}");
+      res.json({ success: true, hotels: result.hotels || [] });
+    } catch (err: any) {
+      console.warn("[agents] Hotel lookup search failed, falling back to local list: ", err);
+      const venueNorm = (req.body.venue || "").toLowerCase();
+      const cityNorm = (req.body.cityCountry || "").toLowerCase();
+
+      let fallbackHotels = [
+        {
+          name: "Crowne Plaza London - Docklands",
+          address: "Western Gateway, Royal Victoria Dock, London E16 1AL, United Kingdom",
+          distance: "0.2 miles from ExCeL London",
+          pricePerNight: "$240 USD",
+          description: "Premium lakeview hotel with on-site high-speed business hubs and full conference catering."
+        },
+        {
+          name: "Radisson Blu Hotel, Nairobi Upper Hill",
+          address: "Elgon Road, Upper Hill, Nairobi, Kenya",
+          distance: "0.9 miles from CBD Center",
+          pricePerNight: "KES 18,500 Ksh",
+          description: "Upscale corporate base featuring robust fast Wi-Fi, executive business lounge access, and scenic terraces."
+        },
+        {
+          name: "Crowne Plaza Geneva",
+          address: "Avenue de Louis-Casaï 75, 1216 Cointrin, Geneva, Switzerland",
+          distance: "0.4 miles from Geneva International Airport & Palexpo",
+          pricePerNight: "CHF 210",
+          description: "A top business destination with airport transit connections and formal modular meeting lounges."
+        }
+      ];
+
+      // Filter based on city
+      if (cityNorm.includes("nairobi") || venueNorm.includes("nairobi")) {
+        fallbackHotels = [fallbackHotels[1]];
+      } else if (cityNorm.includes("london") || venueNorm.includes("excel") || venueNorm.includes("london")) {
+        fallbackHotels = [fallbackHotels[0]];
+      } else if (cityNorm.includes("geneva") || venueNorm.includes("palexpo") || cityNorm.includes("switzerland")) {
+        fallbackHotels = [fallbackHotels[2]];
+      }
+
+      res.json({ success: true, hotels: fallbackHotels, fallbackUsed: true });
+    }
+  });
+
   // Vite Middleware Setup
   if (process.env.NODE_ENV !== "production") {
     console.log("[server] Booting in Development (Vite Middleware) Mode...");

@@ -38,6 +38,8 @@ export interface EventDetails {
   endDate: string;
   purpose: string;
   inviteRefNumber?: string;
+  designatedHotelName?: string;
+  designatedHotelAddress?: string;
 }
 
 export type DesignTheme = 'Swiss Modern' | 'Tech Mono' | 'Editorial Serif' | 'Coastal Clean';
@@ -55,7 +57,7 @@ export interface BrandingDetails {
 export interface GeneratedDocument {
   id: string;
   candidateId: string;
-  type: 'Employment Letter' | 'Visa Support Letter' | 'Monthly Payslip' | 'Cover Letter' | 'Event Participation' | 'Branding Spec' | 'Compliance Report';
+  type: 'Employment Letter' | 'Visa Support Letter' | 'Monthly Payslip' | 'Cover Letter' | 'Event Participation' | 'Branding Spec' | 'Compliance Report' | 'Hotel Booking';
   title: string;
   content: string; // Markdown or rich HTML content
   meta?: any; // Extra structured calculations (e.g., payslip breakdown)

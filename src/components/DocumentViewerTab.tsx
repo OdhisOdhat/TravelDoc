@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { 
   FileText, Check, Copy, Printer, Download, Sparkles, 
-  HelpCircle, Edit3, Save, RefreshCw, Undo, Eye, Coins
+  HelpCircle, Edit3, Save, RefreshCw, Undo, Eye, Coins,
+  Bold, Italic, List, Heading, Quote, X
 } from 'lucide-react';
 import { BrandingDetails, GeneratedDocument, Candidate, CompanyProfile, EventDetails, DesignTheme } from '../types';
 
@@ -276,6 +277,42 @@ export default function DocumentViewerTab({
   // Retrieve current active document
   const currentDoc = documents.find(d => d.type === activeDocType);
   const [editText, setEditText] = useState("");
+  
+  // Rich Text Editor State and Functions
+  const [isRichModalOpen, setIsRichModalOpen] = useState(false);
+  const [richEditText, setRichEditText] = useState("");
+
+  const handleInsertRichMarkdown = (prefix: string, suffix: string = '') => {
+    const textarea = document.getElementById('rich-modal-textarea') as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const selectedText = text.substring(start, end);
+    
+    let replacement = '';
+    if (prefix === '- ' || prefix === '## ' || prefix === '### ' || prefix === '#### ' || prefix === '> ') {
+      if (selectedText.includes('\n')) {
+        replacement = selectedText.split('\n').map(l => `${prefix}${l}`).join('\n');
+      } else {
+        replacement = `${prefix}${selectedText || ''}`;
+      }
+    } else {
+      replacement = prefix + (selectedText || '') + suffix;
+    }
+
+    const newText = text.substring(0, start) + replacement + text.substring(end);
+    setRichEditText(newText);
+    
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(
+        start + prefix.length,
+        start + prefix.length + (selectedText || '').length
+      );
+    }, 10);
+  };
 
   React.useEffect(() => {
     if (currentDoc) {
@@ -990,12 +1027,23 @@ export default function DocumentViewerTab({
                 <Save className="h-3.5 w-3.5" /> Save Changes
               </button>
             ) : (
-              <button 
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-md text-xs font-semibold shadow-sm transition-all"
-              >
-                <Edit3 className="h-3.5 w-3.5" /> Edit Template
-              </button>
+              <>
+                <button 
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-md text-xs font-semibold shadow-sm transition-all cursor-pointer"
+                >
+                  <Edit3 className="h-3.5 w-3.5" /> Edit Markdown
+                </button>
+                <button 
+                  onClick={() => {
+                    setRichEditText(currentDoc.content);
+                    setIsRichModalOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-bold shadow-sm transition-all cursor-pointer"
+                >
+                  <Sparkles className="h-3.5 w-3.5" /> Rich Editor Overlay
+                </button>
+              </>
             )}
 
             {isEditing && (
@@ -1587,6 +1635,363 @@ export default function DocumentViewerTab({
           )}
         </div>
       </div>
+
+      {/* RICH CANVAS TEMPLATE EDITOR MODAL OVERLAY */}
+      {isRichModalOpen && (
+        <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 md:p-6" id="rich-editor-overlay-container">
+          <div className="bg-white rounded-2xl border border-slate-200 w-full max-w-6xl h-[85vh] md:h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-fade-in">
+            
+            {/* Modal Header */}
+            <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between border-b border-slate-850 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400">
+                  <Sparkles className="h-5 w-5 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm md:text-base tracking-tight font-sans">
+                    Rich Document Canvas Editor
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-mono mt-0.5 uppercase tracking-wider">
+                    Currently Editing En-Route: {currentDoc.type} — {candidate.fullName}
+                  </p>
+                </div>
+              </div>
+              
+              <button 
+                type="button"
+                onClick={() => {
+                  if (confirm("Are you sure you want to discard your unsaved template edits?")) {
+                    setIsRichModalOpen(false);
+                  }
+                }}
+                className="p-1.5 hover:bg-white/15 rounded-md text-slate-400 hover:text-white transition-all cursor-pointer"
+                title="Exit Editor"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Main Modal Grid Panel: Editor + Live Preview */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 flex-1 overflow-hidden">
+              
+              {/* Left Column: Markdown Input & Bold/Italic/List Controls (Takes 6 Col span) */}
+              <div className="lg:col-span-6 flex flex-col p-5 h-full overflow-hidden border-b lg:border-b-0 lg:border-r border-slate-100 bg-white">
+                
+                {/* Visual Typography Format Toolbar */}
+                <div className="mb-3">
+                  <span className="text-[10px] font-bold font-mono text-slate-450 uppercase tracking-wider block mb-2">
+                    Rich Typography & Markup Toolbar
+                  </span>
+                  
+                  <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-50 border border-slate-200 rounded-lg shadow-2xs">
+                    {/* BOLD */}
+                    <button
+                      type="button"
+                      onClick={() => handleInsertRichMarkdown('**', '**')}
+                      className="p-2 hover:bg-slate-200 text-slate-700 hover:text-slate-950 rounded transition-all flex items-center justify-center font-bold text-xs cursor-pointer"
+                      title="Bold Selection (**)"
+                      id="rte-btn-bold"
+                    >
+                      <Bold className="h-3.5 w-3.5" />
+                    </button>
+
+                    {/* ITALIC */}
+                    <button
+                      type="button"
+                      onClick={() => handleInsertRichMarkdown('*', '*')}
+                      className="p-2 hover:bg-slate-200 text-slate-700 hover:text-slate-950 rounded transition-all flex items-center justify-center font-italic text-xs cursor-pointer"
+                      title="Italic Selection (*)"
+                      id="rte-btn-italic"
+                    >
+                      <Italic className="h-3.5 w-3.5" />
+                    </button>
+
+                    <div className="h-4 w-px bg-slate-200 mx-1" />
+
+                    {/* BULLET LIST */}
+                    <button
+                      type="button"
+                      onClick={() => handleInsertRichMarkdown('- ')}
+                      className="p-2 hover:bg-slate-200 text-slate-700 hover:text-slate-950 rounded transition-all flex items-center justify-center text-xs cursor-pointer"
+                      title="Insert Bullet Point list (- )"
+                      id="rte-btn-bullet"
+                    >
+                      <List className="h-3.5 w-3.5" />
+                    </button>
+
+                    {/* NUMBERED LIST */}
+                    <button
+                      type="button"
+                      onClick={() => handleInsertRichMarkdown('1. ')}
+                      className="px-2 py-1 hover:bg-slate-200 text-slate-700 hover:text-slate-950 rounded transition-all font-mono font-bold text-xs cursor-pointer"
+                      title="Insert Numbered list (1. )"
+                      id="rte-btn-number"
+                    >
+                      1.
+                    </button>
+
+                    <div className="h-4 w-px bg-slate-200 mx-1" />
+
+                    {/* HEADING H2 */}
+                    <button
+                      type="button"
+                      onClick={() => handleInsertRichMarkdown('## ')}
+                      className="px-2 py-1 hover:bg-slate-200 text-slate-700 hover:text-slate-950 rounded transition-all font-mono font-bold text-xs cursor-pointer"
+                      title="Add Main Heading (##)"
+                      id="rte-btn-h2"
+                    >
+                      H2
+                    </button>
+
+                    {/* HEADING H3 */}
+                    <button
+                      type="button"
+                      onClick={() => handleInsertRichMarkdown('### ')}
+                      className="px-2 py-1 hover:bg-slate-200 text-slate-700 hover:text-slate-950 rounded transition-all font-mono font-bold text-xs cursor-pointer"
+                      title="Add Subheading (###)"
+                      id="rte-btn-h3"
+                    >
+                      H3
+                    </button>
+
+                    {/* HEADING H4 */}
+                    <button
+                      type="button"
+                      onClick={() => handleInsertRichMarkdown('#### ')}
+                      className="px-2 py-1 hover:bg-slate-200 text-slate-700 hover:text-slate-950 rounded transition-all font-mono font-bold text-xs cursor-pointer"
+                      title="Add Category Header (####)"
+                      id="rte-btn-h4"
+                    >
+                      H4
+                    </button>
+
+                    <div className="h-4 w-px bg-slate-200 mx-1" />
+
+                    {/* BLOCKQUOTE */}
+                    <button
+                      type="button"
+                      onClick={() => handleInsertRichMarkdown('> ')}
+                      className="p-2 hover:bg-slate-200 text-slate-700 hover:text-slate-950 rounded transition-all flex items-center justify-center text-xs cursor-pointer"
+                      title="Insert Quote block (> )"
+                      id="rte-btn-quote"
+                    >
+                      <Quote className="h-3.5 w-3.5" />
+                    </button>
+
+                    {/* DIVIDER */}
+                    <button
+                      type="button"
+                      onClick={() => handleInsertRichMarkdown('\n---\n')}
+                      className="px-2 py-1 hover:bg-slate-200 text-slate-700 hover:text-slate-950 rounded transition-all font-mono font-bold text-xs cursor-pointer"
+                      title="Insert Horizontal Divider Line"
+                      id="rte-btn-hr"
+                    >
+                      ---
+                    </button>
+                  </div>
+                </div>
+
+                {/* Left Textarea area */}
+                <div className="flex-1 min-h-0 flex flex-col space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-wide">
+                      Interactive Text Area & Template Body
+                    </span>
+                    <span className="font-mono text-[10px] text-slate-400">
+                      Chars: {richEditText.length}
+                    </span>
+                  </div>
+                  <textarea
+                    id="rich-modal-textarea"
+                    value={richEditText}
+                    onChange={(e) => setRichEditText(e.target.value)}
+                    placeholder="Refined template content (Supports markdown)"
+                    className="flex-1 w-full p-4 border border-slate-200 rounded-xl focus:ring-1 focus:ring-slate-900 focus:border-slate-900 outline-none overflow-y-auto bg-slate-50 font-mono text-xs leading-relaxed resize-none shadow-inner"
+                  />
+                </div>
+
+                {/* HR/Legal Preset Addons */}
+                <div className="mt-4 pt-4 border-t border-slate-100">
+                  <span className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-wide block mb-2">
+                    ⚡ Sponsor Fast-Clips ( HR & Compliance Presets )
+                  </span>
+                  
+                  <div className="grid grid-cols-2 gap-2 text-left">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const originalValue = richEditText;
+                        const addition = `\n\n### ⚔️ CORPORATE TREASURY SPONSORSHIP GUARANTEE\n**Sponsorship Backing Verified:** **${company.name}** certifies that ${candidate.fullName} has guaranteed support under executive budget line index **HR-SPO-${candidate.id.toUpperCase().slice(0, 4)}**. Absolute indemnification covering all transit, flight per-diems, corporate suites, and local transport represents a confirmed prepaid line. All health or medical expenses incurred during en-route scheduling will be billed directly to our corporate accounts.`;
+                        setRichEditText(originalValue + addition);
+                      }}
+                      className="text-[10px] bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-150 p-2 rounded text-left transition-all font-semibold leading-tight line-clamp-1 truncate cursor-pointer"
+                      id="preset-sponsorship"
+                      title="Insert Corporate Guarantee block"
+                    >
+                      🤝 + Sponsorship Guarantee
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const originalValue = richEditText;
+                        const addition = `\n\n---\n\n### 🛡️ KRA STATUS & TREASURY ASSURANCE SEAL\n- **Pre-Cleared Sponsor PIN:** \`${candidate.kraPin || 'P051239841C'}\`\n- **Consular Assurance Status:** GUARANTEED APPOINTMENT SPONSORSHIP\n- **Financial Registry Certification:** Helix Verification Registry Code **TR-AUD-${candidate.id.toUpperCase().slice(0, 6)}**\n- **Support URL:** \`https://verify.${company.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com/sec-clear/${candidate.id}\``;
+                        setRichEditText(originalValue + addition);
+                      }}
+                      className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 p-2 rounded text-left transition-all font-semibold leading-tight line-clamp-1 truncate cursor-pointer"
+                      id="preset-kra"
+                      title="Insert KRA Status Seal block"
+                    >
+                      📜 + KRA Assurance Seal
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const originalValue = richEditText;
+                        const addition = `\n\n### 🏨 SECURED ACCOMMODATION VOUCHER (PREPAID)\n- **Selected Hotel:** ${event.designatedHotelName || 'Sourced Business Plaza'}\n- **Sponsor Guarantee:** Fully Prepaid Business Executive Room\n- **Check-In Policy:** Automated Late check-in confirmation guaranteed by corporate treasury authorization limit. All room service & full board charges pre-cleared.`;
+                        setRichEditText(originalValue + addition);
+                      }}
+                      className="text-[10px] bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-150 p-2 rounded text-left transition-all font-semibold leading-tight line-clamp-1 truncate cursor-pointer"
+                      id="preset-hotel"
+                      title="Insert Secured Hotel voucher"
+                    >
+                      🏨 + Secured Hotel Block
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const originalValue = richEditText;
+                        const addition = `\n\nRespectfully submitted,\n\n**${company.signatoryName || 'Executive Officer'}**\n${company.signatoryTitle || 'Director of Operations'}\n**${company.name}**\n*Corporate HR & Consular Facilitation Desk*`;
+                        setRichEditText(originalValue + addition);
+                      }}
+                      className="text-[10px] bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-150 p-2 rounded text-left transition-all font-semibold leading-tight line-clamp-1 truncate cursor-pointer"
+                      id="preset-signature"
+                      title="Insert Sign-off block"
+                    >
+                      ✍️ + Signature Block
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Right Column: Live rendered simulated paper letterhead canvas (Takes 6 Col span) */}
+              <div className="lg:col-span-6 flex flex-col bg-slate-50 h-full overflow-hidden">
+                <div className="px-5 py-3 border-b border-slate-200 bg-slate-100 flex items-center justify-between shrink-0">
+                  <span className="text-[10px] font-bold font-mono text-slate-500 uppercase tracking-wide flex items-center gap-1">
+                    👁️ Side-By-Side Live Paper Preview
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="inline-block w-2 bg-emerald-500 h-2 rounded-full animate-bounce" />
+                    <span className="text-[9px] font-mono font-semibold text-emerald-600">Active Rendering</span>
+                  </div>
+                </div>
+
+                <div className="flex-1 p-5 overflow-y-auto">
+                  <div 
+                    className={`mx-auto max-w-[550px] min-h-[750px] bg-white border border-slate-200 p-6 sm:p-8 shadow-sm relative ${getThemeClass()} select-text`}
+                    style={{ fontSize: '10.5pt' }}
+                  >
+                    {/* Letterhead borders based on choice */}
+                    {branding.letterheadStyle === 'Side Accent Bar' && (
+                      <div className="absolute top-0 left-0 bottom-0 w-1.5" style={{ backgroundColor: branding.primaryColor }} />
+                    )}
+                    {branding.letterheadStyle === 'Top Gradient Banner' && (
+                      <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r" style={{ backgroundImage: `linear-gradient(to right, ${branding.primaryColor}, ${branding.secondaryColor})` }} />
+                    )}
+
+                    {/* Letterhead Frame */}
+                    <div className={`flex flex-row items-center justify-between gap-4 pb-4 border-b border-slate-200 mb-6 ${branding.letterheadStyle === 'Classic Crest' ? 'flex-col text-center justify-center' : ''}`}>
+                      <div className={`flex-shrink-0 ${branding.letterheadStyle === 'Classic Crest' ? 'mx-auto' : ''}`}>
+                        <div 
+                          className="max-h-12"
+                          dangerouslySetInnerHTML={{ __html: branding.logoSvg }} 
+                        />
+                      </div>
+                      
+                      <div className={`text-[9px] text-slate-400 font-sans leading-normal ${branding.letterheadStyle === 'Classic Crest' ? 'text-center' : 'text-right'}`}>
+                        <h5 className="font-bold text-slate-800 text-[11px] uppercase tracking-tight">
+                          {candidate.organization || company.name}
+                        </h5>
+                        <p className="text-slate-500">{candidate.companyAddress || company.address}</p>
+                      </div>
+                    </div>
+
+                    {/* Real time render */}
+                    {currentDoc.type === 'Monthly Payslip' ? (
+                      <div>
+                        {/* Summary message */}
+                        <div className="bg-emerald-50 text-emerald-800 rounded p-3 text-[10.5px] border border-emerald-100 font-medium mb-4 leading-normal">
+                          ℹ️ Note: Interactive Payslips utilize static structural grids on paper exports. Raw markdown edits will be rendered inside the supplementary audit report:
+                        </div>
+                        <div className="prose max-w-none text-slate-700 text-xs">
+                          {renderSimpleMarkdown(richEditText, branding.theme, branding.primaryColor)}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="prose max-w-none text-slate-700 text-xs">
+                        {renderSimpleMarkdown(richEditText, branding.theme, branding.primaryColor)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+            {/* Modal Bottom Actions */}
+            <div className="bg-slate-50 border-t border-slate-100 px-6 py-4 flex items-center justify-between shrink-0">
+              <span className="text-[11px] text-slate-400 font-medium font-sans">
+                💡 Standard keyboard shortcuts are active. Use markdown markers for high accuracy.
+              </span>
+              
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm("Are you sure you want to discard your edits?")) {
+                      setIsRichModalOpen(false);
+                    }
+                  }}
+                  className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-semibold cursor-pointer transition-all"
+                  id="rich-editor-cancel-btn"
+                >
+                  Discard Edits
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => {
+                    onUpdateDocumentContent(currentDoc.id, richEditText);
+                    setEditText(richEditText);
+                    setIsRichModalOpen(false);
+                    
+                    // Push audit trail log
+                    setRevisionHistory(prev => [
+                      {
+                        id: `rev-${Date.now()}`,
+                        description: `Manually formatted template and updated body content via Rich Canvas Overlay.`,
+                        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                        docType: currentDoc.type,
+                        paragraphIndex: null
+                      },
+                      ...prev
+                    ]);
+                  }}
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm shadow-emerald-600/15 transition-all"
+                  id="rich-editor-save-btn"
+                >
+                  <Check className="h-4 w-4" /> Save & Apply Template
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       </div>
   );
