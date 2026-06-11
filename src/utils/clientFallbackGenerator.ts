@@ -576,6 +576,14 @@ Respectfully,
         details: `Letterheads structured dynamically to reinforce consular presentation style.`
       },
       {
+        id: `log-d1-${candidate.id}-layout`,
+        timestamp: new Date().toISOString(),
+        agent: 'Design Layout',
+        level: 'success',
+        message: `Typography paired & vector letterhead designed for ${candidate.fullName}.`,
+        details: `Created customized vector logo representing "${candidate.organization || company.name}" (primary: ${candidateBranding.primaryColor}, secondary: ${candidateBranding.secondaryColor}). Refined typographic stack with font heading "${candidateBranding.fontHeading}" + font body "${candidateBranding.fontBody}", utilizing layout: "${letterheadStyle}".`
+      },
+      {
         id: `log-e1-${candidate.id}-2`,
         timestamp: new Date().toISOString(),
         agent: 'Employment Verification',

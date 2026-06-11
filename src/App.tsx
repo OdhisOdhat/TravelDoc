@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Users, Palette, Globe, Briefcase, Plus, Trash2, 
   Sparkles, FileText, CheckCircle2, ShieldAlert, ShieldCheck,
@@ -48,6 +48,37 @@ export default function App() {
   // Staggered status bar progress mock inside generation triggers
   const [progressPercent, setProgressPercent] = useState(0);
   const [activeCandidateName, setActiveCandidateName] = useState("");
+
+  // Pre-load default Scientific Biotech case and pre-compile documents on start to guarantee full dashboard visibility on first render
+  useEffect(() => {
+    if (packages.length > 0) return;
+    
+    const initialCompany = SAMPLE_COMPANY;
+    const initialEvent = SAMPLE_EVENT;
+    const initialCandidates = SAMPLE_CANDIDATES;
+    
+    setCompany(initialCompany);
+    setEvent(initialEvent);
+    setCandidates(initialCandidates);
+    setThemePreference("Swiss Modern");
+
+    // Pre-generate packages client-side instantly so all dashboard sections render beautifully out-of-the-box
+    import('./utils/clientFallbackGenerator').then(({ executeClientPipeline }) => {
+      const generated = executeClientPipeline(initialCandidates, initialCompany, initialEvent, "Swiss Modern");
+      setPackages(generated);
+      const retrievedLogs = generated.flatMap((p: any) => p.logs || []);
+      const sanitizedLogs = retrievedLogs.map((l: any, idx: number) => ({
+        ...l,
+        id: l.id ? (l.id.includes(`-safe-${idx}`) ? l.id : `${l.id}-safe-${idx}`) : `log-safe-${idx}`
+      }));
+      setLogs(sanitizedLogs);
+      if (generated.length > 0) {
+        setSelectedCandId(generated[0].candidateId);
+      }
+    }).catch(err => {
+      console.error("Error pre-populating app modules: ", err);
+    });
+  }, []);
 
   // AI Venue auto-generation lookup based on conference name
   const handleLookupVenue = async () => {

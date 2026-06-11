@@ -1247,6 +1247,15 @@ export async function executePipeline(
         .map(l => l.id === 'log-c1' ? { ...l, id: `log-c1-${candidate.id}` } : l)
     ];
 
+    candidateLogs.push({
+      id: `log-d1-${candidate.id}-layout`,
+      timestamp: new Date().toISOString(),
+      agent: 'Design Layout',
+      level: 'success',
+      message: `Refined typography alignment & compiled bespoke letterhead vector layout for nominee ${candidate.fullName}.`,
+      details: `Designed custom SVG brand markup representing "${candidate.organization || company.name}". Mapped theme colors: Primary: ${candidateBranding.primaryColor}, Secondary: ${candidateBranding.secondaryColor}. Selected Layout style: "${letterheadStyle}" under designated ${candidateBranding.theme} preset utilizing ${candidateBranding.fontHeading} displays paired with ${candidateBranding.fontBody} layouts.`
+    });
+
     // Get dynamic fictitious signing authority for this specific candidate to vary signatories realistically!
     const candidateSignatory = getFictitiousSignatory(candidate.id, company.signatoryName, company.signatoryTitle);
     const candidateSpecificCompany = {

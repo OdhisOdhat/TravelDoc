@@ -677,37 +677,83 @@ export default function DocumentViewerTab({
 
   // Browser Print trigger
   const handlePrint = () => {
+    const canvas = document.getElementById('print-sheet-canvas');
+    if (!canvas) {
+      alert("Error: Print sheet canvas was not found on the page.");
+      return;
+    }
+
     const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    
+    if (!printWindow) {
+      alert("Please enable popups in your browser to view print previews and export PDFs.");
+      return;
+    }
+
+    // Capture style tags and stylesheet links from the current DOM
+    const styleElements = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+      .map(tag => tag.outerHTML)
+      .join('\n');
+
     printWindow.document.write(`
+      <!DOCTYPE html>
       <html>
         <head>
-          <title>Print - ${currentDoc.title}</title>
+          <title>${currentDoc.title} - ${candidate.fullName}</title>
+          <meta charset="utf-8">
+          ${styleElements}
           <style>
-            body { font-family: sans-serif; padding: 40px; line-height: 1.6; color: #1e293b; }
-            .header { border-bottom: 2px solid ${branding.primaryColor}; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
-            .content { font-size: 14px; }
-            h3 { color: ${branding.primaryColor}; margin-top: 25px; font-size: 18px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            td { padding: 8px; border-bottom: 1px solid #e2e8f0; }
+            body {
+              background-color: #f8fafc !important;
+              margin: 0;
+              padding: 40px;
+              display: flex;
+              justify-content: center;
+              font-family: system-ui, -apple-system, sans-serif;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            
+            #print-outer-wrapper {
+              background-color: #ffffff;
+              width: 100%;
+              max-width: 800px;
+              min-height: 1000px;
+              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+              border: 1px solid #e2e8f0;
+              padding: 48px;
+              box-sizing: border-box;
+              position: relative;
+            }
+
+            @media print {
+              body {
+                background-color: #ffffff !important;
+                padding: 0 !important;
+                margin: 0 !important;
+              }
+              #print-outer-wrapper {
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                max-width: 100% !important;
+                min-height: auto !important;
+                position: relative !important;
+              }
+            }
           </style>
         </head>
         <body>
-          <div class="header">
-            <div>
-              ${branding.logoSvg}
-            </div>
-            <div style="text-align: right; font-size: 11px;">
-              <strong>${company.name}</strong><br/>
-              ${company.address}
-            </div>
+          <div id="print-outer-wrapper" class="${canvas.className}">
+            ${canvas.innerHTML}
           </div>
-          <h2>${currentDoc.title}</h2>
-          <div class="content">
-            ${currentDoc.content.split('\n').map(line => `<p>${line}</p>`).join('')}
-          </div>
-          <script>window.print();</script>
+          <script>
+            window.addEventListener('load', () => {
+              setTimeout(() => {
+                window.print();
+              }, 400);
+            });
+          </script>
         </body>
       </html>
     `);
@@ -853,6 +899,13 @@ export default function DocumentViewerTab({
               title="Print document"
             >
               <Printer className="h-4 w-4" />
+            </button>
+            <button 
+              onClick={handlePrint}
+              className="px-3 py-1.5 text-white hover:bg-red-700 bg-red-650 rounded-md transition-all flex items-center gap-1.5 text-xs font-semibold shadow-sm"
+              title="Download high-fidelity PDF"
+            >
+              <FileText className="h-3.5 w-3.5" /> PDF
             </button>
             <button 
               onClick={handleDownloadDoc}
