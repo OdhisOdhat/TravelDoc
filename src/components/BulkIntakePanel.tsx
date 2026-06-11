@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   UploadCloud, FileSpreadsheet, Play, Pause, RefreshCw, CheckCircle2, 
   AlertTriangle, Search, Filter, Trash2, Edit, AlertCircle, FileText, 
-  Settings2, ChevronLeft, ChevronRight, Check, X, Sparkles, Download, HelpCircle, Loader2
+  Settings2, ChevronLeft, ChevronRight, Check, X, Sparkles, Download, HelpCircle, Loader2, Plus
 } from 'lucide-react';
 import { Candidate, CompanyProfile, EventDetails, DesignTheme, CandidatePackage } from '../types';
 import * as XLSX from 'xlsx';
@@ -1037,18 +1037,49 @@ export default function BulkIntakePanel({
                 </button>
               )}
 
+              <button
+                type="button"
+                onClick={() => {
+                  const newCand: Candidate = {
+                    id: `cand-gen-${Date.now()}`,
+                    fullName: "",
+                    passportNumber: "",
+                    jobTitle: "",
+                    department: "",
+                    monthlySalary: 75000,
+                    hireDate: new Date(Date.now() - (1200 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0], // pre-filled (>3 years)
+                    roleInEvent: "Attendee",
+                    travelStartDate: event.startDate || new Date().toISOString().split('T')[0],
+                    travelEndDate: event.endDate || new Date(Date.now() + 8*24*60*60*1000).toISOString().split('T')[0],
+                    email: "",
+                    organization: company.name || "",
+                    kraPin: "A012345678B",
+                    phone: "0712345678",
+                    companyEmail: "hr@" + (company.website ? company.website.replace("https://", "").replace("http://", "").replace("www.", "") : "company.com"),
+                    companyAddress: company.address || ""
+                  };
+                  setCandidates([...candidates, newCand]);
+                  setEditingCandidate(newCand);
+                }}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 font-bold text-xs rounded-md shadow-sm flex items-center gap-1.5 transition-all cursor-pointer mr-1"
+                id="add-single-nominee-btn"
+              >
+                <Plus className="h-3.5 w-3.5 text-slate-600" />
+                Add Nominee (Single Form)
+              </button>
+
               {candidates.length > 0 ? (
                 <button
                   onClick={startBulkQueue}
                   disabled={isGenerating || candidates.length === 0}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-semibold text-xs rounded-md shadow-sm flex items-center gap-1.5 transition-all"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-semibold text-xs rounded-md shadow-sm flex items-center gap-1.5 transition-all cursor-pointer font-sans"
                 >
                   <Play className="h-3.5 w-3.5" /> 
                   {selectedRowIds.size > 0 ? `Process Selected (${selectedRowIds.size})` : `Start Multi-Agent Queue (${candidates.length})`}
                 </button>
               ) : (
                 <div className="text-xs text-slate-500 flex items-center gap-1">
-                  Import CSV travelers first!
+                  No travelers added yet. Add manually or import!
                 </div>
               )}
             </div>
@@ -1832,18 +1863,64 @@ export default function BulkIntakePanel({
               <div className="flex gap-2">
                 <button
                   onClick={() => setEditingCandidate(null)}
-                  className="px-3 py-1.5 border border-slate-200 hover:bg-slate-100 text-slate-650 text-xs font-semibold rounded-md"
+                  className="px-3 py-1.5 border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-semibold rounded-md cursor-pointer transition-all"
                 >
-                  Discard Changes
+                  Discard
                 </button>
                 <button
                   onClick={() => {
-                    setCandidates(candidates.map(c => c.id === editingCandidate.id ? editingCandidate : c));
+                    if (!editingCandidate.fullName) {
+                      alert("Please specify the traveler's Full Name first.");
+                      return;
+                    }
+                    const isNew = !candidates.some(c => c.id === editingCandidate.id);
+                    const updatedList = isNew 
+                      ? [...candidates, editingCandidate]
+                      : candidates.map(c => c.id === editingCandidate.id ? editingCandidate : c);
+                    setCandidates(updatedList);
                     setEditingCandidate(null);
                   }}
-                  className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-md shadow-sm"
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-md border border-slate-300 transition-all cursor-pointer"
+                  title="Just save candidate data to sheet without running agents"
                 >
-                  Save Corrections
+                  Save (no generation)
+                </button>
+                <button
+                  onClick={() => {
+                    if (!editingCandidate.fullName) {
+                      alert("Please specify the traveler's Full Name first.");
+                      return;
+                    }
+                    const isNew = !candidates.some(c => c.id === editingCandidate.id);
+                    const updatedList = isNew 
+                      ? [...candidates, editingCandidate]
+                      : candidates.map(c => c.id === editingCandidate.id ? editingCandidate : c);
+                    setCandidates(updatedList);
+                    setEditingCandidate(null);
+
+                    // Setup single queue execution
+                    const targetQueueItem: QueueItem = {
+                      candidateId: editingCandidate.id,
+                      name: editingCandidate.fullName,
+                      status: 'queued',
+                      currentStep: 'Initializing direct traveler document drafting...',
+                      progressPercent: 0
+                    };
+                    setQueue([targetQueueItem]);
+                    setIsProcessingQueue(true);
+                    setProcessedCount(0);
+                    setSuccessCount(0);
+                    setFailedCount(0);
+                    setCurrentQueueIndex(0);
+                    setIsGenerating(true);
+                    setActiveTab('pipeline');
+                    stopProcessingRef.current = false;
+                  }}
+                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold rounded-md shadow-sm flex items-center gap-1 cursor-pointer transition-all"
+                  title="Save and run multi-agent generators instantly for this single nominee"
+                  id="save-and-generate-single-btn"
+                >
+                  <Play className="h-3 w-3 fill-current" /> Save & Generate Letters
                 </button>
               </div>
             </div>
