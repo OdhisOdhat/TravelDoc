@@ -2,10 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   UploadCloud, FileSpreadsheet, Play, Pause, RefreshCw, CheckCircle2, 
   AlertTriangle, Search, Filter, Trash2, Edit, AlertCircle, FileText, 
-  Settings2, ChevronLeft, ChevronRight, Check, X, Sparkles, Download, HelpCircle
+  Settings2, ChevronLeft, ChevronRight, Check, X, Sparkles, Download, HelpCircle, Loader2
 } from 'lucide-react';
 import { Candidate, CompanyProfile, EventDetails, DesignTheme, CandidatePackage } from '../types';
 import * as XLSX from 'xlsx';
+import { downloadAllTravelPackagesAsZip } from '../utils/zipGenerator';
 
 // Supported event roles
 type EventRole = 'Speaker' | 'Attendee' | 'Exhibitor' | 'VIP Guest';
@@ -107,6 +108,7 @@ export default function BulkIntakePanel({
   const [currentQueueIndex, setCurrentQueueIndex] = useState<number>(-1);
   const [processedCount, setProcessedCount] = useState(0);
   const [successCount, setSuccessCount] = useState(0);
+  const [isDownloadingAllBulk, setIsDownloadingAllBulk] = useState(false);
   const [failedCount, setFailedCount] = useState(0);
   const [concurrency, setConcurrency] = useState<number>(1); // Sequentially or in parallel chunks
   const stopProcessingRef = useRef(false);
@@ -1002,6 +1004,37 @@ export default function BulkIntakePanel({
                     <Trash2 className="h-3 w-3" /> Delete
                   </button>
                 </div>
+              )}
+
+              {packages.length > 0 && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsDownloadingAllBulk(true);
+                    try {
+                      await downloadAllTravelPackagesAsZip(packages, candidates, company, event);
+                    } catch (err: any) {
+                      console.error(err);
+                      alert("Could not compile ZIP package: " + err.message);
+                    } finally {
+                      setIsDownloadingAllBulk(false);
+                    }
+                  }}
+                  disabled={isDownloadingAllBulk}
+                  className="px-4 py-2 border border-[#00b074] hover:bg-[#E6FBF4] text-[#00b074] font-semibold text-xs rounded-md shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  {isDownloadingAllBulk ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Creating ZIP...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-3.5 w-3.5" />
+                      Download All (ZIP)
+                    </>
+                  )}
+                </button>
               )}
 
               {candidates.length > 0 ? (

@@ -3,7 +3,7 @@ import {
   Users, Palette, Globe, Briefcase, Plus, Trash2, 
   Sparkles, FileText, CheckCircle2, ShieldAlert, ShieldCheck,
   Building2, Calendar, FileType, BookOpen, ChevronRight, HelpCircle,
-  Search, Loader2, Wand2
+  Search, Loader2, Wand2, Download
 } from 'lucide-react';
 import { Candidate, CompanyProfile, EventDetails, DesignTheme, CandidatePackage, AgentLog } from './types';
 import { SAMPLE_COMPANY, SAMPLE_EVENT, SAMPLE_CANDIDATES } from './data/sampleData';
@@ -11,6 +11,7 @@ import AgentStatusBoard from './components/AgentStatusBoard';
 import CompliancePanel from './components/CompliancePanel';
 import DocumentViewerTab from './components/DocumentViewerTab';
 import BulkIntakePanel from './components/BulkIntakePanel';
+import { downloadAllTravelPackagesAsZip } from './utils/zipGenerator';
 
 export default function App() {
   // Input States
@@ -44,6 +45,7 @@ export default function App() {
   const [logs, setLogs] = useState<AgentLog[]>([]);
   const [packages, setPackages] = useState<CandidatePackage[]>([]);
   const [selectedCandId, setSelectedCandId] = useState<string | null>(null);
+  const [isDownloadingAll, setIsDownloadingAll] = useState(false);
   
   // Staggered status bar progress mock inside generation triggers
   const [progressPercent, setProgressPercent] = useState(0);
@@ -675,32 +677,76 @@ export default function App() {
         {packages.length > 0 && selectedPackage && activeCandidate && (
           <div className="space-y-8 animate-fade-in">
             
-            {/* Multiple Candidate Tab Navigation Selector */}
-            {packages.length > 1 && (
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center gap-3 text-white overflow-x-auto">
-                <span className="text-xs font-mono text-slate-400 font-semibold uppercase tracking-wider pl-1 flex-shrink-0">
-                  Select Traveler Output:
-                </span>
-                <div className="flex items-center gap-2 min-w-0">
-                  {packages.map((pkg) => {
-                    const cInfo = candidates.find(c => c.id === pkg.candidateId);
-                    if (!cInfo) return null;
-                    const isSelected = selectedCandId === pkg.candidateId;
-                    return (
-                      <button
-                        key={pkg.candidateId}
-                        onClick={() => setSelectedCandId(pkg.candidateId)}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 flex-shrink-0 ${
-                          isSelected 
-                            ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-md' 
-                            : 'bg-slate-800/85 hover:bg-slate-805 text-slate-300 border border-slate-750'
-                        }`}
-                      >
-                        <FileText className="h-3.5 w-3.5" />
-                        {cInfo.fullName}
-                      </button>
-                    );
-                  })}
+            {/* Multiple Candidate Tab Navigation Selector & Bulk ZIP Download */}
+            {packages.length > 0 && (
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 text-white">
+                <div className="flex items-center gap-3 overflow-x-auto pb-2 md:pb-0 min-w-0">
+                  {packages.length > 1 && (
+                    <>
+                      <span className="text-xs font-mono text-slate-400 font-semibold uppercase tracking-wider pl-1 flex-shrink-0">
+                        Select Traveler Output:
+                      </span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        {packages.map((pkg) => {
+                          const cInfo = candidates.find(c => c.id === pkg.candidateId);
+                          if (!cInfo) return null;
+                          const isSelected = selectedCandId === pkg.candidateId;
+                          return (
+                            <button
+                              key={pkg.candidateId}
+                              onClick={() => setSelectedCandId(pkg.candidateId)}
+                              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 flex-shrink-0 ${
+                                isSelected 
+                                  ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-md' 
+                                  : 'bg-slate-800/85 hover:bg-slate-750 text-slate-300 border border-slate-750'
+                              }`}
+                            >
+                              <FileText className="h-3.5 w-3.5" />
+                              {cInfo.fullName}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                  {packages.length === 1 && (
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse flex-shrink-0" />
+                      <span className="text-xs font-sans text-slate-300">
+                        High-fidelity packages generated successfully for <strong>{activeCandidate?.fullName}</strong>.
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-shrink-0 self-stretch md:self-auto">
+                  <button
+                    onClick={async () => {
+                      setIsDownloadingAll(true);
+                      try {
+                        await downloadAllTravelPackagesAsZip(packages, candidates, company, event);
+                      } catch (err: any) {
+                        console.error(err);
+                        alert("Could not compile ZIP portfolio: " + err.message);
+                      } finally {
+                        setIsDownloadingAll(false);
+                      }
+                    }}
+                    disabled={isDownloadingAll || packages.length === 0}
+                    className="w-full md:w-auto bg-[#00b074] hover:bg-[#009a65] disabled:bg-slate-800 disabled:text-slate-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 duration-150 cursor-pointer"
+                  >
+                    {isDownloadingAll ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin text-white" />
+                        Compiling ZIP Portfolio...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4" />
+                        Download All Packages (ZIP)
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             )}
