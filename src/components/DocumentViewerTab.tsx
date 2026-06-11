@@ -16,7 +16,13 @@ interface DocumentViewerTabProps {
 }
 
 // Simple but elegant utility to parse basic Markdown (headers, lists, bold) into styled HTML elements
-function renderSimpleMarkdown(md: string, theme: DesignTheme, primaryColor: string) {
+function renderSimpleMarkdown(
+  md: string, 
+  theme: DesignTheme, 
+  primaryColor: string,
+  onSelectParagraph?: (paraText: string, index: number) => void,
+  selectedParaIndex?: number | null
+) {
   if (!md) return null;
   
   const lines = md.split('\n');
@@ -30,34 +36,70 @@ function renderSimpleMarkdown(md: string, theme: DesignTheme, primaryColor: stri
     
     // Headers
     if (trimmed.startsWith('###')) {
+      const headerText = trimmed.slice(3).trim();
+      const isSelected = selectedParaIndex === index;
       return (
         <h3 
           key={index} 
-          className="text-lg font-bold mt-6 mb-3 tracking-tight font-sans"
+          onClick={() => onSelectParagraph && onSelectParagraph(headerText, index)}
+          className={`text-lg font-bold mt-6 mb-3 tracking-tight font-sans transition-all group relative cursor-pointer px-2 py-1 rounded-md border-2 ${
+            isSelected 
+              ? 'border-blue-500 bg-blue-50/25 shadow-sm ring-1 ring-blue-400' 
+              : 'border-transparent hover:border-blue-300 hover:bg-blue-50/5'
+          }`}
           style={{ color: primaryColor }}
         >
-          {trimmed.slice(3).trim()}
+          {headerText}
+          {onSelectParagraph && (
+            <span className="absolute -top-2.5 right-2 opacity-0 group-hover:opacity-100 flex items-center gap-1 bg-slate-900 border border-slate-850 text-[9px] text-white px-1.5 py-0.5 rounded shadow transition-opacity select-none z-10 font-mono font-normal normal-case">
+              <Sparkles className="h-2.5 w-2.5 text-blue-400 animate-pulse" /> Tweak Subsection
+            </span>
+          )}
         </h3>
       );
     }
     if (trimmed.startsWith('####')) {
+      const headerText = trimmed.slice(4).trim();
+      const isSelected = selectedParaIndex === index;
       return (
         <h4 
           key={index} 
-          className="text-sm font-semibold uppercase tracking-wider mt-5 mb-2 text-slate-500 font-mono"
+          onClick={() => onSelectParagraph && onSelectParagraph(headerText, index)}
+          className={`text-sm font-semibold uppercase tracking-wider mt-5 mb-2 text-slate-500 font-mono transition-all group relative cursor-pointer px-2 py-1 rounded-md border-2 ${
+            isSelected 
+              ? 'border-blue-500 bg-blue-50/25 shadow-sm ring-1 ring-blue-400' 
+              : 'border-transparent hover:border-blue-300 hover:bg-blue-50/5'
+          }`}
         >
-          {trimmed.slice(4).trim()}
+          {headerText}
+          {onSelectParagraph && (
+            <span className="absolute -top-2.5 right-2 opacity-0 group-hover:opacity-100 flex items-center gap-1 bg-slate-900 border border-slate-850 text-[9px] text-white px-1.5 py-0.5 rounded shadow transition-opacity select-none z-10 font-mono font-normal normal-case">
+              <Sparkles className="h-2.5 w-2.5 text-blue-400 animate-pulse" /> Tweak Category
+            </span>
+          )}
         </h4>
       );
     }
     if (trimmed.startsWith('##')) {
+      const headerText = trimmed.slice(2).trim();
+      const isSelected = selectedParaIndex === index;
       return (
         <h2 
           key={index} 
-          className="text-xl font-bold mt-8 mb-4 tracking-tight border-b pb-2"
+          onClick={() => onSelectParagraph && onSelectParagraph(headerText, index)}
+          className={`text-xl font-bold mt-8 mb-4 tracking-tight border-b pb-2 transition-all group relative cursor-pointer px-2 py-1 rounded-md border-2 ${
+            isSelected 
+              ? 'border-blue-500 bg-blue-50/25 shadow-sm ring-1 ring-blue-400' 
+              : 'border-transparent hover:border-blue-300 hover:bg-blue-50/5'
+          }`}
           style={{ borderColor: `${primaryColor}20`, color: primaryColor }}
         >
-          {trimmed.slice(2).trim()}
+          {headerText}
+          {onSelectParagraph && (
+            <span className="absolute -top-2.5 right-2 opacity-0 group-hover:opacity-100 flex items-center gap-1 bg-slate-900 border border-slate-850 text-[9px] text-white px-1.5 py-0.5 rounded shadow transition-opacity select-none z-10 font-mono font-normal normal-case">
+              <Sparkles className="h-2.5 w-2.5 text-blue-400 animate-pulse" /> Tweak Heading
+            </span>
+          )}
         </h2>
       );
     }
@@ -71,9 +113,24 @@ function renderSimpleMarkdown(md: string, theme: DesignTheme, primaryColor: stri
 
     // Unordered List Items
     if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
+      const isSelected = selectedParaIndex === index;
+      const cleanListItem = trimmed.slice(1).trim();
       return (
-        <li key={index} className="ml-5 list-disc my-1.5 leading-relaxed text-slate-700">
+        <li 
+          key={index} 
+          onClick={() => onSelectParagraph && onSelectParagraph(cleanListItem, index)}
+          className={`ml-5 list-disc my-1.5 leading-relaxed text-slate-700 transition-all group relative cursor-pointer px-2 py-0.5 rounded-md border-2 ${
+            isSelected 
+              ? 'border-blue-500 bg-blue-50/25 shadow-sm ring-1 ring-blue-400' 
+              : 'border-transparent hover:border-blue-300 hover:bg-blue-50/5'
+          }`}
+        >
           {processedLine}
+          {onSelectParagraph && (
+            <span className="absolute -top-2.5 right-2 opacity-0 group-hover:opacity-100 flex items-center gap-1 bg-slate-900 border border-slate-850 text-[9px] text-white px-1.5 py-0.5 rounded shadow transition-opacity select-none z-10 font-mono font-normal normal-case">
+              <Sparkles className="h-2.5 w-2.5 text-blue-400 animate-pulse" /> Tweak Bullet
+            </span>
+          )}
         </li>
       );
     }
@@ -98,9 +155,23 @@ function renderSimpleMarkdown(md: string, theme: DesignTheme, primaryColor: stri
     }
 
     // Default Paragraph line
+    const isSelected = selectedParaIndex === index;
     return (
-      <p key={index} className="my-1.5 leading-relaxed text-slate-700 text-sm md:text-base font-sans font-normal antialiased">
+      <p 
+        key={index} 
+        onClick={() => onSelectParagraph && onSelectParagraph(trimmed, index)}
+        className={`my-1.5 leading-relaxed text-slate-700 text-sm md:text-base font-sans font-normal antialiased transition-all group relative cursor-pointer px-2 py-1.5 rounded-md border-2 ${
+          isSelected 
+            ? 'border-blue-500 bg-blue-50/25 shadow-sm ring-1 ring-blue-400' 
+            : 'border-transparent hover:border-blue-250 hover:bg-blue-50/10'
+        }`}
+      >
         {processedLine}
+        {onSelectParagraph && (
+          <span className="absolute -top-3.5 right-2 opacity-0 group-hover:opacity-100 flex items-center gap-1 bg-slate-900 border border-slate-800 text-[9px] text-white px-1.5 py-0.5 rounded shadow transition-opacity select-none z-15 font-mono font-normal normal-case">
+            <Sparkles className="h-2.5 w-2.5 text-blue-400 animate-pulse" /> Tweak Paragraph
+          </span>
+        )}
       </p>
     );
   });
@@ -190,7 +261,17 @@ export default function DocumentViewerTab({
   const [feedbackText, setFeedbackText] = useState("");
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [selectedMonthIdx, setSelectedMonthIdx] = useState(2); // May 2026 is index 2 as default
-
+  
+  // Interactive paragraph selector and audit trail logs for Live Agent Co-pilot & Regenerator
+  const [selectedParaIndex, setSelectedParaIndex] = useState<number | null>(null);
+  const [selectedParaText, setSelectedParaText] = useState<string>("");
+  const [revisionHistory, setRevisionHistory] = useState<Array<{
+    id: string;
+    description: string;
+    timestamp: string;
+    docType: string;
+    paragraphIndex: number | null;
+  }>>([]);
 
   // Retrieve current active document
   const currentDoc = documents.find(d => d.type === activeDocType);
@@ -200,6 +281,9 @@ export default function DocumentViewerTab({
     if (currentDoc) {
       setEditText(currentDoc.content);
     }
+    // Clean up focus block when changing documents
+    setSelectedParaIndex(null);
+    setSelectedParaText("");
   }, [currentDoc, activeDocType]);
 
   if (!currentDoc) {
@@ -223,6 +307,16 @@ export default function DocumentViewerTab({
 
     try {
       let data: any = null;
+      const documentType = currentDoc.type;
+      const currentContent = currentDoc.content;
+      
+      // Select the specific block content if selected, otherwise focus on the whole document
+      const targetContent = selectedParaIndex !== null ? selectedParaText : currentContent;
+      
+      const customFeedback = selectedParaIndex !== null 
+        ? `Within the "${documentType}" for traveler ${candidate.fullName}, rewrite ONLY the following specific block of text/paragraph to fulfill this constraint: "${feedbackText}". Keep the word length and tone proportionate to standard visa or employment letters. Provide ONLY the revised replacement block text without introduction, markdown formatting symbols outside normal markdown, or explanations.\n\nTarget block to rewrite:\n"${selectedParaText}"`
+        : feedbackText;
+
       try {
         const res = await fetch('/api/regenerate-document', {
           method: 'POST',
@@ -231,9 +325,9 @@ export default function DocumentViewerTab({
             candidate,
             company,
             event,
-            documentType: currentDoc.type,
-            currentContent: currentDoc.content,
-            feedback: feedbackText,
+            documentType,
+            currentContent: targetContent,
+            feedback: customFeedback,
             branding
           })
         });
@@ -250,42 +344,74 @@ export default function DocumentViewerTab({
       if (!data || !data.success || !data.updatedContent) {
         console.log("Simulating document regeneration client-side for sandbox compatibility...");
         
-        // Intelligent client-side heuristic:
-        // Try to replace text or append nicely at relevant parts.
-        let updatedContent = currentDoc.content;
+        let localUpdatedText = selectedParaIndex !== null ? selectedParaText : currentContent;
         const feedbackLower = feedbackText.toLowerCase();
 
-        // 1. If user wants a specific address update
         if (feedbackLower.includes("address") || feedbackLower.includes("located") || feedbackLower.includes("street")) {
-          // Add a custom address note
-          updatedContent = updatedContent.replace(
-            /(Sincerely,|Respectfully,|Sincerely yours,)/i,
-            `Employer Address Updated Note: Sponsoring activities are referenced at ${company.address}.\n\n$1`
-          );
+          localUpdatedText = selectedParaIndex !== null 
+            ? `${selectedParaText} (address details verified at ${company.address})`
+            : localUpdatedText.replace(
+                /(Sincerely,|Respectfully,|Sincerely yours,)/i,
+                `Employer Address Updated Note: Sponsoring activities are referenced at ${company.address}.\n\n$1`
+              );
+        } else if (feedbackLower.includes("signature") || feedbackLower.includes("representative") || feedbackLower.includes("signat")) {
+          localUpdatedText = selectedParaIndex !== null 
+            ? `${selectedParaText} [Authorized Representative: ${company.signatoryName}, ${company.signatoryTitle}]`
+            : localUpdatedText.replace(
+                /(\*\*(.*?)\*\* \nAuthorized Signatory)/i,
+                `**${company.signatoryName}**\n${company.signatoryTitle}\n(Fictitious Representative Verified)`
+              );
+        } else {
+          // General client fallback
+          localUpdatedText = selectedParaIndex !== null 
+            ? `${selectedParaText} (Refined: ${feedbackText})`
+            : localUpdatedText + `\n\n*Document revised locally to address feedback: "${feedbackText}"*`;
         }
-        
-        // 2. If user mentions names, signatures, or representatives
-        if (feedbackLower.includes("signature") || feedbackLower.includes("representative") || feedbackLower.includes("signat")) {
-          updatedContent = updatedContent.replace(
-            /(\*\*(.*?)\*\* \nAuthorized Signatory)/i,
-            `**${company.signatoryName}**\n${company.signatoryTitle}\n(Fictitious Representative Verified)`
-          );
-        }
-
-        // Standard fallback: append a very polished, professional revision note or adjust accordingly
-        const today = new Date().toLocaleDateString(undefined, { day: '2-digit', month: 'long', year: 'numeric' });
-        updatedContent = updatedContent + `\n\n*Document revised locally on ${today} to address feedback: "${feedbackText}"*`;
 
         data = {
           success: true,
-          updatedContent
+          updatedContent: localUpdatedText
         };
       }
 
       if (data.success && data.updatedContent) {
-        onUpdateDocumentContent(currentDoc.id, data.updatedContent);
-        setEditText(data.updatedContent);
+        let finalDocumentContent = currentContent;
+        
+        if (selectedParaIndex !== null) {
+          // Paragraph refinement: surgically replace specific block line in markdown content
+          const lines = currentContent.split('\n');
+          // If the AI returned markdown wrapped in quotes, trim it
+          let cleanContentRefined = data.updatedContent.trim();
+          if (cleanContentRefined.startsWith('"') && cleanContentRefined.endsWith('"')) {
+            cleanContentRefined = cleanContentRefined.substring(1, cleanContentRefined.length - 1);
+          }
+          lines[selectedParaIndex] = cleanContentRefined;
+          finalDocumentContent = lines.join('\n');
+        } else {
+          // Adjust entire file content
+          finalDocumentContent = data.updatedContent;
+        }
+
+        onUpdateDocumentContent(currentDoc.id, finalDocumentContent);
+        setEditText(finalDocumentContent);
+        
+        // Push a beautiful item to our revision audit timeline state
+        setRevisionHistory(prev => [
+          {
+            id: `rev-${Date.now()}`,
+            description: selectedParaIndex !== null 
+              ? `Refined selected paragraph block #${selectedParaIndex + 1} ("${feedbackText}")`
+              : `Tuned entire document structure ("${feedbackText}")`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            docType: documentType,
+            paragraphIndex: selectedParaIndex
+          },
+          ...prev
+        ]);
+
         setFeedbackText("");
+        setSelectedParaIndex(null);
+        setSelectedParaText("");
       } else {
         alert(data.error || "Could not regenerate document.");
       }
@@ -777,10 +903,10 @@ export default function DocumentViewerTab({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
       
       {/* Visual Design Controller & Document Tabs */}
-      <div className="lg:col-span-3 space-y-6">
+      <div className="xl:col-span-3 lg:col-span-4 space-y-6">
         
         {/* Document Selectors */}
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
@@ -851,7 +977,7 @@ export default function DocumentViewerTab({
       </div>
 
       {/* Primary document terminal rendering canvas */}
-      <div className="lg:col-span-9 space-y-6">
+      <div className="xl:col-span-6 lg:col-span-8 space-y-6">
         
         {/* Core Controls Action Bar */}
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
@@ -1288,13 +1414,31 @@ export default function DocumentViewerTab({
                     View Comprehensive Narrative & Detailed Payroll Report
                   </summary>
                   <div className="prose max-w-none text-slate-700 mt-3 border-t pt-3 text-xs leading-relaxed">
-                    {renderSimpleMarkdown(currentDoc.content, branding.theme, branding.primaryColor)}
+                    {renderSimpleMarkdown(
+                      currentDoc.content, 
+                      branding.theme, 
+                      branding.primaryColor,
+                      (text, idx) => {
+                        setSelectedParaIndex(idx);
+                        setSelectedParaText(text);
+                      },
+                      selectedParaIndex
+                    )}
                   </div>
                 </details>
               </div>
             ) : (
               <div className="prose max-w-none prose-slate">
-                {renderSimpleMarkdown(currentDoc.content, branding.theme, branding.primaryColor)}
+                {renderSimpleMarkdown(
+                  currentDoc.content, 
+                  branding.theme, 
+                  branding.primaryColor,
+                  (text, idx) => {
+                    setSelectedParaIndex(idx);
+                    setSelectedParaText(text);
+                  },
+                  selectedParaIndex
+                )}
               </div>
             )}
 
@@ -1306,47 +1450,144 @@ export default function DocumentViewerTab({
           </div>
         </div>
 
-        {/* Guided Agent Instruction Co-Pilot Regenerator Widget */}
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 text-slate-800 relative overflow-hidden shadow-sm">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/5 blur-3xl rounded-full" />
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="h-4 w-4 text-blue-600" />
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 font-sans">
+      </div>
+
+      {/* Right Column: Live Agent Co-pilot & Regenerator */}
+      <div className="xl:col-span-3 lg:col-span-12 space-y-6">
+        <div className="bg-white border border-slate-200 rounded-xl p-5 text-slate-800 shadow-sm relative overflow-hidden sticky top-6">
+          <div className="absolute top-0 right-0 w-36 h-36 bg-blue-500/10 blur-3xl rounded-full pointer-events-none" />
+          
+          <div className="flex items-center gap-2 mb-2 relative z-10">
+            <Sparkles className="h-4 w-4 text-blue-600 animate-pulse" />
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 font-sans">
               Live Agent Co-pilot & Regenerator
             </h4>
           </div>
-          <p className="text-xs text-slate-500 leading-relaxed mb-4">
-            Instruct the specialized agent to adjust the document's wording layout, correct travel dates, insert precise flight references, or rewrite specific sections while preserving design parameters.
+
+          <p className="text-[11px] text-slate-500 leading-relaxed mb-4 relative z-10">
+            Instruct the specialized agent to adjust the document's structure, refine wording, or rewrite specific paragraphs based on your feedback.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-2">
-            <input
-              type="text"
-              value={feedbackText}
-              onChange={(e) => setFeedbackText(e.target.value)}
-              placeholder="e.g. 'Rewrite the Duties narrative to emphasize clinical safety protocols' or 'Add flight reference code BA-243'"
-              className="flex-1 bg-white border border-slate-200 rounded-md px-4 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900"
-              disabled={isRegenerating}
-            />
+          {/* Selection State Card */}
+          {selectedParaIndex !== null ? (
+            <div className="mb-4 p-3 bg-blue-50/75 border border-blue-200 rounded-lg text-xs relative z-10 select-none">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="font-bold text-blue-800 flex items-center gap-1 font-mono text-[10px] uppercase">
+                  🎯 Target Section #{selectedParaIndex + 1}
+                </span>
+                <button 
+                  onClick={() => {
+                    setSelectedParaIndex(null);
+                    setSelectedParaText("");
+                  }} 
+                  className="text-blue-500 hover:text-blue-700 transition-colors font-semibold"
+                  title="Clear block focus"
+                >
+                  Deselect
+                </button>
+              </div>
+              <p className="text-slate-600 italic line-clamp-3 leading-relaxed">
+                "{selectedParaText}"
+              </p>
+              <div className="mt-2 text-[9px] text-blue-600/85">
+                ⚡ Submit your instructions to refine ONLY this section!
+              </div>
+            </div>
+          ) : (
+            <div className="mb-4 p-3 bg-slate-50 border border-slate-150 rounded-lg text-xs text-slate-500 relative z-10">
+              <span className="font-semibold text-slate-700 block mb-0.5">💡 Professional Tip:</span>
+              Click on any paragraph directly inside the letterhead preview matching your goals to focus the Co-pilot on that block!
+            </div>
+          )}
+
+          {/* Quick prompt action chips */}
+          <div className="mb-4 relative z-10">
+            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wide block mb-2">
+              Common Tweaks
+            </span>
+            <div className="flex flex-col gap-1.5">
+              {[
+                { label: "🎓 Make highly formal", prompt: "Improve the vocabulary to make it extremely formal, appropriate for a senior visa officer." },
+                { label: "⏱️ Long-form date representation", prompt: "Ensure all travel and conference schedule dates strictly output in long-form." },
+                { label: "💼 Highlight technical leadership", prompt: "Rewrite this segment to emphasize advanced cloud development and enterprise governance skills." },
+                { label: "✈️ Add corporate travel details", prompt: "Add travel itinerary references including flight codes and connections." },
+                { label: "⚓ Summarize & shorten", prompt: "Make the content more concise and straight to the point without compromising on credentials." }
+              ].map((act, idx) => {
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setFeedbackText(act.prompt);
+                    }}
+                    className="text-[10.5px] bg-slate-100 hover:bg-slate-250 text-slate-700 duration-150 font-semibold px-2.5 py-1.5 rounded text-left truncate w-full"
+                    title={act.prompt}
+                  >
+                    {act.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Main User Input area */}
+          <div className="space-y-3 relative z-10">
+            <div>
+              <label className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wide block mb-1.5">
+                Feedback & Constraints
+              </label>
+              <textarea
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                placeholder={selectedParaIndex !== null ? "e.g. 'Translate to formal English', 'change years to 5 years', 'mention clinical expertise'" : "e.g. 'Make the whole letter sound extremely professional and formal' or click a paragraph to modify specifically"}
+                className="w-full h-24 bg-white border border-slate-200 rounded-lg p-3 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900 resize-none font-sans"
+                disabled={isRegenerating}
+              />
+            </div>
+
             <button
               onClick={handleAIRegenerate}
               disabled={isRegenerating || !feedbackText.trim()}
-              className="bg-slate-900 hover:bg-slate-800 disabled:bg-slate-150 disabled:text-slate-400 active:bg-slate-950 text-white text-xs font-semibold px-4 py-2 rounded-md transition-all flex items-center justify-center gap-1.5 shadow-sm shrink-0"
+              className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-150 disabled:text-slate-400 active:bg-slate-950 text-white text-xs font-semibold py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 justify-center shadow-sm"
             >
               {isRegenerating ? (
                 <>
-                  <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Aligning...
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Aligning with AI...
                 </>
               ) : (
                 <>
-                  <RefreshCw className="h-3.5 w-3.5" /> Tweak Document
+                  <RefreshCw className="h-3.5 w-3.5" /> 
+                  {selectedParaIndex !== null ? "Modify Highlighted Block" : "Tweak Full Document"}
                 </>
               )}
             </button>
           </div>
+
+          {/* Live agent audit logs trail of changes */}
+          {revisionHistory.length > 0 && (
+            <div className="mt-6 pt-5 border-t border-slate-100 relative z-10">
+              <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wide block mb-3">
+                Revision Audit History
+              </span>
+              <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
+                {revisionHistory
+                  .filter(h => h.docType === currentDoc.type)
+                  .map((log) => (
+                    <div key={log.id} className="text-[10px] text-slate-600 bg-slate-50 border border-slate-100 rounded p-2 flex flex-col gap-1 leading-normal">
+                      <div className="flex justify-between font-mono text-[9px] text-slate-450">
+                        <span>{log.timestamp}</span>
+                        <span className="text-emerald-600 font-bold">SUCCESS</span>
+                      </div>
+                      <p className="font-sans font-medium text-slate-700">
+                        {log.description}
+                      </p>
+                    </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
+      </div>
 
       </div>
-    </div>
   );
 }
